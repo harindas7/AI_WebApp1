@@ -91,25 +91,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Contact Form Handling ---
   const contactForm = document.getElementById('contact-form');
+  const formStatus = document.getElementById('form-status');
+
   if (contactForm) {
     contactForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const btn = contactForm.querySelector('button[type="submit"]');
       const originalText = btn.textContent;
+
+      // Disable button and show loading state
       btn.textContent = 'Sending...';
       btn.disabled = true;
 
-      // Simulate form submission
-      setTimeout(() => {
-        btn.textContent = '✓ Message Sent!';
-        btn.style.background = 'var(--success)';
-        contactForm.reset();
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.style.background = '';
+      if (formStatus) formStatus.style.display = 'none';
+
+      const formData = new FormData(contactForm);
+
+      fetch('send-email.php', {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            // Success Feedback
+            btn.textContent = '✓ Message Sent!';
+            btn.style.background = 'var(--success)';
+            contactForm.reset();
+
+            if (formStatus) {
+              formStatus.textContent = data.message;
+              formStatus.style.display = 'block';
+              formStatus.style.backgroundColor = '#d4edda';
+              formStatus.style.color = '#155724';
+              formStatus.style.border = '1px solid #c3e6cb';
+            }
+
+            // Reset button after delay
+            setTimeout(() => {
+              btn.textContent = originalText;
+              btn.style.background = '';
+              btn.disabled = false;
+              if (formStatus) formStatus.style.display = 'none';
+            }, 5000);
+          } else {
+            throw new Error(data.message || 'Something went wrong');
+          }
+        })
+        .catch(error => {
+          // Error Feedback
+          btn.textContent = 'Error - Try Again';
+          btn.style.background = 'var(--error, #ef4444)'; // Fallback red if var not defined
           btn.disabled = false;
-        }, 3000);
-      }, 1200);
+
+          if (formStatus) {
+            formStatus.textContent = error.message;
+            formStatus.style.display = 'block';
+            formStatus.style.backgroundColor = '#f8d7da';
+            formStatus.style.color = '#721c24';
+            formStatus.style.border = '1px solid #f5c6cb';
+          }
+
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '';
+          }, 3000);
+        });
     });
   }
 
